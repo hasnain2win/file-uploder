@@ -59,3 +59,47 @@ private Set<CAGProfileBulkUploadDTO> validateXlsxFile(MultipartFile file) throws
     
     return cagProfileBulkUploadDTOs;
 }
+
+
+private Set<CAGProfileBulkUploadDTO> validateXlsxFile(MultipartFile file) throws IOException {
+    Set<CAGProfileBulkUploadDTO> cagProfileBulkUploadDTOs = new HashSet<>();
+    
+    try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+        Sheet sheet = workbook.getSheetAt(0);
+        
+        // Determine the maximum number of columns by checking the header row or a predefined value
+        int maxColumns = sheet.getRow(0) != null ? sheet.getRow(0).getLastCellNum() : 0;
+        
+        // Iterate over rows, starting from the first data row
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            
+            // Skip null rows
+            if (row == null) {
+                continue;
+            }
+            
+            String[] data = new String[maxColumns];
+            
+            // Iterate over all expected columns
+            for (int j = 0; j < maxColumns; j++) {
+                Cell cell = row.getCell(j);
+                
+                // Read cell value as String
+                if (cell == null) {
+                    data[j] = ""; // or null if you prefer
+                } else {
+                    data[j] = cell.toString().trim();
+                }
+            }
+            
+            // Create and validate DTO
+            CAGProfileBulkUploadDTO cagProfileBulkUpload = createCAGProfileBulkUploadDTO(data);
+            validateCAGProfileBulkUploadDTO(cagProfileBulkUpload);
+            
+            cagProfileBulkUploadDTOs.add(cagProfileBulkUpload);
+        }
+    }
+    
+    return cagProfileBulkUploadDTOs;
+}
